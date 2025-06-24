@@ -48,7 +48,7 @@ if [[ ! -f "qualys-cloud-agent.deb" && ! -f "qualys-cloud-agent.rpm" ]]; then
     echo "Please download the appropriate package from your Qualys console and place it here"
     echo "Expected files:"
     echo "  - qualys-cloud-agent.deb (for Ubuntu/Debian hosts)"
-    echo "  - qualys-cloud-agent.rpm (for RHEL/CentOS hosts)"
+    echo "  - qualys-cloud-agent.rpm (for RHEL/CentOS/CoreOS hosts)"
     echo ""
     echo "Steps:"
     echo "1. Log into Qualys VMDR console"
