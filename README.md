@@ -11,10 +11,8 @@ The original Qualys k8s-daemonset downloads agent binaries from URLs during pod 
 The container image includes either a Qualys DEB or RPM package. The DaemonSet pod mounts the host filesystem and uses chroot to install the agent directly onto the host system. The agent runs as a native systemd service.
 
 Installation logic:
-- Ubuntu/Debian + DEB package: installs directly using dpkg
-- Ubuntu/Debian + RPM package: converts using alien then installs  
-- RHEL/CentOS + RPM package: installs directly using rpm
-- RHEL/CentOS + DEB package: not supported
+- Ubuntu/Debian hosts: use DEB package
+- RHEL/CentOS hosts: use RPM package
 
 ## Requirements
 
@@ -34,8 +32,8 @@ cd qualys-k8s-bundled
 ```
 
 Download the Qualys Cloud Agent package from your console (VMDR > Downloads > Cloud Agent):
-- Linux x86_64 DEB package (recommended for Ubuntu) - rename to `qualys-cloud-agent.deb`
-- Linux x86_64 RPM package - rename to `qualys-cloud-agent.rpm`
+- Linux x86_64 DEB package for Ubuntu hosts - rename to `qualys-cloud-agent.deb`
+- Linux x86_64 RPM package for RHEL/CentOS hosts - rename to `qualys-cloud-agent.rpm`
 
 Your directory should look like this:
 ```
@@ -146,13 +144,13 @@ kubectl exec -n qualys-system qualys-cloud-agent-xxxxx -- \
 
 **Permission denied**: Container needs privileged mode to install packages on host.
 
-**Installation failures**: For RPM on Ubuntu, script installs `alien` to convert packages. Use DEB package for cleaner installation on Ubuntu.
+**Installation failures**: Ensure you're using the correct package type for your host OS (DEB for Ubuntu, RPM for RHEL/CentOS).
 
 **Agent not starting**: Check systemd logs on host. Usually credential or network connectivity issues.
 
 **Secret access problems**: Use `./manage-secrets.sh` option 4 to test secret access.
 
-**Package format errors**: Ensure file is named `qualys-cloud-agent.deb` or `qualys-cloud-agent.rpm`.
+**Package format errors**: Ensure file is named `qualys-cloud-agent.deb` or `qualys-cloud-agent.rpm` and matches your host OS.
 
 ## Updating and maintenance
 
@@ -184,7 +182,7 @@ Compared to the download-based method:
 - Consistent deployments across environments  
 - Works in air-gapped environments
 - Better version control with specific agent versions per image
-- Native package handling (DEB for Ubuntu, RPM for RHEL)
+- Native package installation (DEB for Ubuntu, RPM for RHEL/CentOS)
 
 ## Security notes
 
