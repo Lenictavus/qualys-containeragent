@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: qualys-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qualys-agent-credentials
+  namespace: qualys-system
+type: Opaque
+stringData:
+  # Sensitive Qualys Cloud Agent credentials
+  # Replace these values with your actual credentials
+  ACTIVATION_ID: "YOUR_ACTIVATION_ID_HERE"
+  CUSTOMER_ID: "YOUR_CUSTOMER_ID_HERE"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qualys-agent-config
+  namespace: qualys-system
+data:
+  # Non-sensitive Qualys Cloud Agent configuration
+  SERVER_URI: "https://YOUR_QUALYS_SERVER/CloudAgent/"
+  LOG_LEVEL: "3"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qualys-agent
+  namespace: qualys-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: qualys-agent
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: qualys-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: qualys-agent
+subjects:
+- kind: ServiceAccount
+  name: qualys-agent
+  namespace: qualys-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: qualys-cloud-agent
+  namespace: qualys-system
+  labels:
+    app: qualys-cloud-agent
+spec:
+  selector:
+    matchLabels:
+      app: qualys-cloud-agent
+  template:
+    metadata:
+      labels:
+        app: qualys-cloud-agent
+    spec:
+      serviceAccountName: qualys-agent
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      # Target Linux worker nodes (Ubuntu, RHEL, CentOS, CoreOS)
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      # Allow scheduling on tainted nodes if needed
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      containers:
+      - name: qualys-agent-installer
+        # Replace with your registry and image tag
+        image: your-registry/qualys-agent-bundled:latest
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+          runAsUser: 0
+          capabilities:
+            add: ["SYS_ADMIN", "SYS_CHROOT", "SYS_MODULE"]
+        env:
+        # Sensitive credentials from Secret
+        - name: ACTIVATION_ID
+          valueFrom:
+            secretKeyRef:
+              name: qualys-agent-credentials
+              key: ACTIVATION_ID
+        - name: CUSTOMER_ID
+          valueFrom:
+            secretKeyRef:
+              name: qualys-agent-credentials
+              key: CUSTOMER_ID
+        # Non-sensitive configuration from ConfigMap
+        - name: SERVER_URI
+          valueFrom:
+            configMapKeyRef:
+              name: qualys-agent-config
+              key: SERVER_URI
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: qualys-agent-config
+              key: LOG_LEVEL
+        # Node information
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        # Mount host filesystem for chroot installation
+        - name: host-root
+          mountPath: /host
+          mountPropagation: HostToContainer
+        # Mount host /proc for system information
+        - name: host-proc
+          mountPath: /host/proc
+          readOnly: true
+        # Mount host /sys for system information
+        - name: host-sys
+          mountPath: /host/sys
+          readOnly: true
+        # Mount host /dev for device access
+        - name: host-dev
+          mountPath: /host/dev
+        # Mount host run directory for systemd/socket access
+        - name: host-run
+          mountPath: /host/run
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        # Health checks
+        livenessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - "ps aux | grep -v grep | grep sleep"
+          initialDelaySeconds: 300
+          periodSeconds: 300
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - "chroot /host systemctl is-active qualys-cloud-agent"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+      volumes:
+      # Host filesystem access
+      - name: host-root
+        hostPath:
+          path: /
+          type: Directory
+      - name: host-proc
+        hostPath:
+          path: /proc
+          type: Directory
+      - name: host-sys
+        hostPath:
+          path: /sys
+          type: Directory
+      - name: host-dev
+        hostPath:
+          path: /dev
+          type: Directory
+      - name: host-run
+        hostPath:
+          path: /run
+          type: Directory
+      # Restart policy for DaemonSet
+      restartPolicy: Always
+      # DNS policy for host network
+      dnsPolicy: ClusterFirstWithHostNet
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
