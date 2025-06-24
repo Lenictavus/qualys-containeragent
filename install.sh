@@ -72,7 +72,7 @@ if chroot "$CHROOT_PATH" bash -c "which dpkg > /dev/null 2>&1"; then
     fi
     
 elif chroot "$CHROOT_PATH" bash -c "which rpm > /dev/null 2>&1"; then
-    echo "Detected RPM-based host"
+    echo "Detected RPM-based host (RHEL/CentOS/CoreOS)"
     
     if [[ "$PACKAGE_TYPE" == "rpm" ]]; then
         echo "Installing RPM package..."
@@ -82,12 +82,12 @@ elif chroot "$CHROOT_PATH" bash -c "which rpm > /dev/null 2>&1"; then
         "
     else
         echo "ERROR: DEB package provided but host requires RPM package"
-        echo "Please use qualys-cloud-agent.rpm for RHEL/CentOS hosts"
+        echo "Please use qualys-cloud-agent.rpm for RHEL/CentOS/CoreOS hosts"
         exit 1
     fi
 else
     echo "ERROR: Could not detect supported package manager on host"
-    echo "Host must have either dpkg (Debian/Ubuntu) or rpm (RHEL/CentOS)"
+    echo "Host must have either dpkg (Debian/Ubuntu) or rpm (RHEL/CentOS/CoreOS)"
     exit 1
 fi
 
