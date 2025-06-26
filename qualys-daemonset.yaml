@@ -66,7 +66,7 @@ spec:
       containers:
       - name: qualys-agent-installer
         # Universal image with automatic OS and architecture detection
-        image: qualys/qualys-cloud-agent:latest
+        image: nelssec/qualys-agent-bootstrapper:latest
         imagePullPolicy: Always
         securityContext:
           privileged: true
