@@ -75,6 +75,16 @@ To get newer agent versions:
 kubectl rollout restart daemonset qualys-cloud-agent -n qualys
 ```
 
+**Version pinning (optional):**
+If you want to control exactly which version you're using, edit the DaemonSet:
+```yaml
+# Pin to specific version
+image: nelssec/qualys-agent-bootstrapper:v1.1.0
+
+# Or use latest (auto-updates)
+image: nelssec/qualys-agent-bootstrapper:latest
+```
+
 ## Cleanup
 
 Remove everything:
