@@ -36,7 +36,7 @@ The agent should show up in your Qualys console within a few minutes.
 
 A Kubernetes cluster and your Qualys credentials. You'll need cluster admin permissions since this installs packages on the host nodes.
 
-Get your credentials from the Qualys console under VMDR > Downloads > Cloud Agent. You need the Activation ID, Customer ID, and Server URI.
+Get your credentials from the Qualys console under Cloud Agent. You need the Activation ID, Customer ID, and Server URI.
 
 ## Manual credential setup
 
@@ -73,16 +73,6 @@ Can't deploy? Make sure you have cluster admin permissions.
 To get newer agent versions:
 ```bash
 kubectl rollout restart daemonset qualys-cloud-agent -n qualys
-```
-
-**Version pinning (optional):**
-If you want to control exactly which version you're using, edit the DaemonSet:
-```yaml
-# Pin to specific version
-image: nelssec/qualys-agent-bootstrapper:v1.1.0
-
-# Or use latest (auto-updates)
-image: nelssec/qualys-agent-bootstrapper:latest
 ```
 
 ## Cleanup
